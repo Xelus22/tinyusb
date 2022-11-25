@@ -15,7 +15,21 @@ CFLAGS += \
   -mfloat-abi=hard \
   -mfpu=fpv4-sp-d16 \
   -nostdlib -nostartfiles \
-  -DCFG_TUSB_MCU=OPT_MCU_STM32F4
+  -DCFG_TUSB_MCU=OPT_MCU_STM32F4 \
+  -DBOARD_TUD_RHPORT=$(PORT)
+
+ifeq ($(PORT), 1)
+  ifeq ($(SPEED), high)
+    CFLAGS += -DBOARD_TUD_MAX_SPEED=OPT_MODE_HIGH_SPEED
+    $(info "Using OTG_HS in HighSpeed mode")
+  else
+    CFLAGS += -DBOARD_TUD_MAX_SPEED=OPT_MODE_FULL_SPEED
+    $(info "Using OTG_HS in FullSpeed mode")
+  endif
+else
+  $(info "Using OTG_FS")
+endif
+
 
 # suppress warning caused by vendor mcu driver
 CFLAGS += -Wno-error=cast-align

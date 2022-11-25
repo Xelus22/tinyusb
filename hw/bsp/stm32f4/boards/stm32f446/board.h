@@ -32,8 +32,8 @@
 #endif
 
 // LED
-#define LED_PORT              GPIOD
-#define LED_PIN               GPIO_PIN_14
+#define LED_PORT              GPIOC
+#define LED_PIN               GPIO_PIN_11
 #define LED_STATE_ON          1
 
 // Button
@@ -41,13 +41,24 @@
 #define BUTTON_PIN            GPIO_PIN_0
 #define BUTTON_STATE_ACTIVE   1
 
+// Enable USB3320
+#define ENABLE_PORT           GPIOC
+#define ENABLE_PIN            GPIO_PIN_8
+#define ENABLE_STATE_ACTIVE   1
+
 // Enable PA2 as the debug log UART
 // It is not routed to the ST/Link on the Discovery board.
-#define UART_DEV              USART2
-#define UART_GPIO_PORT        GPIOA
-#define UART_GPIO_AF          GPIO_AF7_USART2
-#define UART_TX_PIN           GPIO_PIN_2
-#define UART_RX_PIN           GPIO_PIN_3
+// #define UART_DEV              USART2
+// #define UART_GPIO_PORT        GPIOA
+// #define UART_GPIO_AF          GPIO_AF7_USART2
+// #define UART_TX_PIN           GPIO_PIN_2
+// #define UART_RX_PIN           GPIO_PIN_3
+
+// USB HS External PHY Pin: CLK, STP, DIR, NXT, D0-D7
+#define ULPI_PINS \
+  {GPIOA, GPIO_PIN_5 }, {GPIOC, GPIO_PIN_0 }, {GPIOC, GPIO_PIN_2 }, {GPIOC, GPIO_PIN_3 }, \
+  {GPIOA, GPIO_PIN_3 }, {GPIOB, GPIO_PIN_0 }, {GPIOB, GPIO_PIN_1 }, {GPIOB, GPIO_PIN_10}, \
+  {GPIOB, GPIO_PIN_2 }, {GPIOB, GPIO_PIN_12}, {GPIOB, GPIO_PIN_13}, {GPIOB, GPIO_PIN_5}
 
 //--------------------------------------------------------------------+
 // RCC Clock
@@ -74,6 +85,7 @@ static inline void board_clock_init(void)
   RCC_OscInitStruct.PLL.PLLN = 336;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 7;
+  RCC_OscInitStruct.PLL.PLLR = 2;
   HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
   /* Select PLL as system clock source and configure the HCLK, PCLK1 and PCLK2
@@ -87,7 +99,7 @@ static inline void board_clock_init(void)
 
   // Enable clocks for LED, Button, Uart
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_USART2_CLK_ENABLE();
 }
 
