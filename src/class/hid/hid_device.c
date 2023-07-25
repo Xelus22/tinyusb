@@ -418,4 +418,9 @@ bool hidd_xfer_cb(uint8_t rhport, uint8_t ep_addr, xfer_result_t result, uint32_
   return true;
 }
 
+bool hidd_sof_isr(uint8_t rhport, uint16_t frame_count)
+{
+  tud_hid_sof_cb(frame_count);
+}
+
 #endif

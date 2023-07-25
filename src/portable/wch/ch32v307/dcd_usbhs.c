@@ -135,6 +135,19 @@ void dcd_remote_wakeup(uint8_t rhport)
   (void) rhport;
 }
 
+void dcd_sof_enable(uint8_t rhport, bool en) 
+{
+    (void) rhport;
+    if (en) 
+    {
+        USBHSD->INT_EN |= USBHS_SOF_ACT_EN
+    } 
+    else
+    {
+        USBHSD->INT_EN &= ~(USBHS_SOF_ACT_EN)
+    }
+}
+
 void dcd_edpt0_status_complete(uint8_t rhport, tusb_control_request_t const *request) {
     (void)rhport;
 
@@ -385,6 +398,8 @@ void dcd_int_handler(uint8_t rhport) {
         dcd_event_handler(&event, true);
 
         USBHSD->INT_FG = USBHS_SUSPEND_FLAG; /* Clear flag */
+    } else if (intflag & USBHS_HST_SOF_FLAG) {
+        dcd_event_sof(rhport, USBHSD->FRAME_NO, true);
     }
 }
 
