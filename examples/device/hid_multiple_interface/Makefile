@@ -5,7 +5,7 @@ INC += \
 	$(TOP)/hw \
 
 # Example source
-EXAMPLE_SOURCE += $(wildcard src/*.c)
+EXAMPLE_SOURCE += $(wildcard src/*.c src/drivers/*.c)
 SRC_C += $(addprefix $(CURRENT_PATH)/, $(EXAMPLE_SOURCE))
 
 include ../../rules.mk

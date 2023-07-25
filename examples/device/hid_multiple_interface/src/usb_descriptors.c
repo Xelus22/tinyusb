@@ -72,13 +72,13 @@ uint8_t const * tud_descriptor_device_cb(void)
 
 uint8_t const desc_hid_report1[] =
 {
-  TUD_HID_REPORT_DESC_KEYBOARD()
-};
-
-uint8_t const desc_hid_report2[] =
-{
   TUD_HID_REPORT_DESC_MOUSE()
 };
+
+// uint8_t const desc_hid_report2[] =
+// {
+//   TUD_HID_REPORT_DESC_KEYBOARD()
+// };
 
 // Invoked when received GET HID REPORT DESCRIPTOR
 // Application return pointer to descriptor
@@ -89,10 +89,10 @@ uint8_t const * tud_hid_descriptor_report_cb(uint8_t itf)
   {
     return desc_hid_report1;
   }
-  else if (itf == 1)
-  {
-    return desc_hid_report2;
-  }
+  // else if (itf == 1)
+  // {
+  //   return desc_hid_report2;
+  // }
 
   return NULL;
 }
@@ -104,23 +104,23 @@ uint8_t const * tud_hid_descriptor_report_cb(uint8_t itf)
 enum
 {
   ITF_NUM_HID1,
-  ITF_NUM_HID2,
+  // ITF_NUM_HID2,
   ITF_NUM_TOTAL
 };
 
-#define  CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_HID_DESC_LEN)
+#define  CONFIG_TOTAL_LEN  (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN)
 
 #define EPNUM_HID1   0x81
-#define EPNUM_HID2   0x82
+// #define EPNUM_HID2   0x82
 
 uint8_t const desc_configuration[] =
 {
   // Config number, interface count, string index, total length, attribute, power in mA
-  TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+  TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 200),
 
   // Interface number, string index, protocol, report descriptor len, EP In address, size & polling interval
-  TUD_HID_DESCRIPTOR(ITF_NUM_HID1, 4, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report1), EPNUM_HID1, CFG_TUD_HID_EP_BUFSIZE, 10),
-  TUD_HID_DESCRIPTOR(ITF_NUM_HID2, 5, HID_ITF_PROTOCOL_NONE, sizeof(desc_hid_report2), EPNUM_HID2, CFG_TUD_HID_EP_BUFSIZE, 10)
+  TUD_HID_DESCRIPTOR(ITF_NUM_HID1, 5, HID_ITF_PROTOCOL_MOUSE, sizeof(desc_hid_report1), EPNUM_HID1, 8, 1),
+  // TUD_HID_DESCRIPTOR(ITF_NUM_HID2, 4, HID_ITF_PROTOCOL_KEYBOARD, sizeof(desc_hid_report2), EPNUM_HID2, CFG_TUD_HID_EP_BUFSIZE, 1)
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR
@@ -186,3 +186,4 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid)
 
   return _desc_str;
 }
+

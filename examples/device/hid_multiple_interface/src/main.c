@@ -30,14 +30,18 @@
 #include "bsp/board.h"
 #include "tusb.h"
 
+#include "drivers/gpio.h"
+#include "drivers/spi_master.h"
+
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
 //--------------------------------------------------------------------+
 
 // Interface index depends on the order in configuration descriptor
-enum {
-  ITF_KEYBOARD = 0,
-  ITF_MOUSE = 1
+enum
+{
+    ITF_MOUSE = 0,
+    ITF_KEYBOARD = 1
 };
 
 /* Blink pattern
@@ -45,10 +49,11 @@ enum {
  * - 1000 ms : device mounted
  * - 2500 ms : device is suspended
  */
-enum  {
-  BLINK_NOT_MOUNTED = 250,
-  BLINK_MOUNTED = 1000,
-  BLINK_SUSPENDED = 2500,
+enum
+{
+    BLINK_NOT_MOUNTED = 250,
+    BLINK_MOUNTED = 1000,
+    BLINK_SUSPENDED = 2500,
 };
 
 static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
@@ -59,18 +64,27 @@ void hid_task(void);
 /*------------- MAIN -------------*/
 int main(void)
 {
-  board_init();
+    board_init();
 
-  // init device stack on configured roothub port
-  tud_init(BOARD_TUD_RHPORT);
+    // init device stack on configured roothub port
+    tud_init(BOARD_TUD_RHPORT);
 
-  while (1)
-  {
-    tud_task(); // tinyusb device task
-    led_blinking_task();
+    // init switches and encoder pins
+    init_buttons();
+    // init spi
+    spi_init();
+    // init pmw3360
 
-    hid_task();
-  }
+    // SOF INTERRUPT ENABLE
+    USBHSD->INT_EN |= (1 << 3);
+    while (1)
+    {
+        tud_task(); // tinyusb device task
+        // if (tud_suspended())
+        //     tud_remote_wakeup();
+        led_blinking_task();
+        hid_task();
+    }
 }
 
 //--------------------------------------------------------------------+
@@ -80,13 +94,13 @@ int main(void)
 // Invoked when device is mounted
 void tud_mount_cb(void)
 {
-  blink_interval_ms = BLINK_MOUNTED;
+    blink_interval_ms = BLINK_MOUNTED;
 }
 
 // Invoked when device is unmounted
 void tud_umount_cb(void)
 {
-  blink_interval_ms = BLINK_NOT_MOUNTED;
+    blink_interval_ms = BLINK_NOT_MOUNTED;
 }
 
 // Invoked when usb bus is suspended
@@ -94,100 +108,97 @@ void tud_umount_cb(void)
 // Within 7ms, device must draw an average of current less than 2.5 mA from bus
 void tud_suspend_cb(bool remote_wakeup_en)
 {
-  (void) remote_wakeup_en;
-  blink_interval_ms = BLINK_SUSPENDED;
+    (void)remote_wakeup_en;
+    blink_interval_ms = BLINK_SUSPENDED;
 }
 
 // Invoked when usb bus is resumed
 void tud_resume_cb(void)
 {
-  blink_interval_ms = BLINK_MOUNTED;
+    blink_interval_ms = BLINK_MOUNTED;
 }
 
 //--------------------------------------------------------------------+
 // USB HID
 //--------------------------------------------------------------------+
 
-void hid_task(void)
+bool read_buttons(void)
 {
-  // Poll every 10ms
-  const uint32_t interval_ms = 10;
-  static uint32_t start_ms = 0;
-
-  if ( board_millis() - start_ms < interval_ms) return; // not enough time
-  start_ms += interval_ms;
-
-  uint32_t const btn = board_button_read();
-
-  // Remote wakeup
-  if ( tud_suspended() && btn )
-  {
-    // Wake up host if we are in suspend mode
-    // and REMOTE_WAKEUP feature is enabled by host
-    tud_remote_wakeup();
-  }
-
-  /*------------- Keyboard -------------*/
-  if ( tud_hid_n_ready(ITF_KEYBOARD) )
-  {
-    // use to avoid send multiple consecutive zero report for keyboard
-    static bool has_key = false;
-
-    if ( btn )
-    {
-      uint8_t keycode[6] = { 0 };
-      keycode[0] = HID_KEY_A;
-
-      tud_hid_n_keyboard_report(ITF_KEYBOARD, 0, 0, keycode);
-
-      has_key = true;
-    }else
-    {
-      // send empty key report if previously has key pressed
-      if (has_key) tud_hid_n_keyboard_report(ITF_KEYBOARD, 0, 0, NULL);
-      has_key = false;
-    }
-  }
-
-  /*------------- Mouse -------------*/
-  if ( tud_hid_n_ready(ITF_MOUSE) )
-  {
-    if ( btn )
-    {
-      int8_t const delta = 5;
-
-      // no button, right + down, no scroll pan
-      tud_hid_n_mouse_report(ITF_MOUSE, 0, 0x00, delta, delta, 0, 0);
-    }
-  }
+    // stub for now
+    return true;
 }
 
+void hid_task(void)
+{
+    static bool new_data = false;
+    static uint8_t movement = 0;
+    // static hid_mouse_report_t new = {0}; // what is new
+    static hid_mouse_report_t send = {0}; // what is transmitted
+
+    // uint32_t const btn = board_button_read();
+
+    // returns true
+    if (read_buttons())
+    {
+        new_data = true;
+    }
+
+    /*------------- Mouse -------------*/
+    if (tud_hid_n_ready(ITF_MOUSE) && new_data)
+    {
+        // read spi
+        // read buttons
+        // read encoder
+        // send output report
+
+        const int8_t delta = 40;
+
+        // no button, right + down, no scroll pan
+        if (movement == 0)
+        {
+            // down
+            send.x = 0;
+            send.y = delta;
+            movement++;
+        }
+        else
+        {
+            // up
+            send.x = 0;
+            send.y = delta * -1;
+            movement = 0;
+        }
+        tud_hid_n_report(ITF_MOUSE, 0, &send, sizeof(send));
+        new_data = false;
+    }
+}
 
 // Invoked when received GET_REPORT control request
 // Application must fill buffer report's content and return its length.
 // Return zero will cause the stack to STALL request
-uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen)
+uint16_t tud_hid_get_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t *buffer, uint16_t reqlen)
 {
-  // TODO not Implemented
-  (void) itf;
-  (void) report_id;
-  (void) report_type;
-  (void) buffer;
-  (void) reqlen;
+    // TODO not Implemented
+    (void)itf;
+    (void)report_id;
+    (void)report_type;
+    (void)buffer;
+    (void)reqlen;
 
-  return 0;
+    return 0;
 }
 
 // Invoked when received SET_REPORT control request or
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
-void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
+void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t report_type, uint8_t const *buffer, uint16_t bufsize)
 {
-  // TODO set LED based on CAPLOCK, NUMLOCK etc...
-  (void) itf;
-  (void) report_id;
-  (void) report_type;
-  (void) buffer;
-  (void) bufsize;
+    // TODO set LED based on CAPLOCK, NUMLOCK etc...
+    (void)itf;
+    (void)report_id;
+    (void)report_type;
+    (void)buffer;
+    (void)bufsize;
+    tud_hid_report(report_id, buffer, bufsize);
 }
 
 //--------------------------------------------------------------------+
@@ -195,13 +206,14 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t rep
 //--------------------------------------------------------------------+
 void led_blinking_task(void)
 {
-  static uint32_t start_ms = 0;
-  static bool led_state = false;
+    static uint32_t start_ms = 0;
+    static bool led_state = false;
 
-  // Blink every interval ms
-  if ( board_millis() - start_ms < blink_interval_ms) return; // not enough time
-  start_ms += blink_interval_ms;
+    // Blink every interval ms
+    if (board_millis() - start_ms < blink_interval_ms)
+        return; // not enough time
+    start_ms += blink_interval_ms;
 
-  board_led_write(led_state);
-  led_state = 1 - led_state; // toggle
+    board_led_write(led_state);
+    led_state = 1 - led_state; // toggle
 }
