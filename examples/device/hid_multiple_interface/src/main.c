@@ -27,6 +27,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "device/dcd.h"
+
 #include "bsp/board.h"
 #include "tusb.h"
 
@@ -65,25 +67,28 @@ void hid_task(void);
 int main(void)
 {
     board_init();
-
     // init device stack on configured roothub port
     tud_init(BOARD_TUD_RHPORT);
+    dcd_sof_enable(BOARD_TUD_RHPORT, true);
+
 
     // init switches and encoder pins
     init_buttons();
     // init spi
     spi_init();
     // init pmw3360
+    board_led_write(true);
 
     // SOF INTERRUPT ENABLE
     USBHSD->INT_EN |= (1 << 3);
     while (1)
     {
         tud_task(); // tinyusb device task
+        // board_led_write(false);
         // if (tud_suspended())
         //     tud_remote_wakeup();
-        led_blinking_task();
-        hid_task();
+        // led_blinking_task();
+        //hid_task();
     }
 }
 
@@ -199,6 +204,14 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t rep
     (void)buffer;
     (void)bufsize;
     tud_hid_report(report_id, buffer, bufsize);
+}
+
+void tud_hid_sof_cb(uint32_t frame_count) {
+  // (void) frame_count;
+  if(frame_count > 2) {
+    board_led_write(false);
+  }
+  hid_task();
 }
 
 //--------------------------------------------------------------------+
