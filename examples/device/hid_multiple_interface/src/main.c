@@ -71,16 +71,14 @@ int main(void)
     tud_init(BOARD_TUD_RHPORT);
     dcd_sof_enable(BOARD_TUD_RHPORT, true);
 
-
     // init switches and encoder pins
     init_buttons();
     // init spi
     spi_init();
     // init pmw3360
-    board_led_write(true);
+    board_led_write(false);
 
     // SOF INTERRUPT ENABLE
-    USBHSD->INT_EN |= (1 << 3);
     while (1)
     {
         tud_task(); // tinyusb device task
@@ -88,7 +86,7 @@ int main(void)
         // if (tud_suspended())
         //     tud_remote_wakeup();
         // led_blinking_task();
-        //hid_task();
+        // hid_task();
     }
 }
 
@@ -135,7 +133,7 @@ bool read_buttons(void)
 
 void hid_task(void)
 {
-    static bool new_data = false;
+    bool new_data = false;
     static uint8_t movement = 0;
     // static hid_mouse_report_t new = {0}; // what is new
     static hid_mouse_report_t send = {0}; // what is transmitted
@@ -143,12 +141,10 @@ void hid_task(void)
     // uint32_t const btn = board_button_read();
 
     // returns true
-    if (read_buttons())
-    {
-        new_data = true;
-    }
+    new_data = read_buttons();
 
     /*------------- Mouse -------------*/
+
     if (tud_hid_n_ready(ITF_MOUSE) && new_data)
     {
         // read spi
@@ -174,7 +170,6 @@ void hid_task(void)
             movement = 0;
         }
         tud_hid_n_report(ITF_MOUSE, 0, &send, sizeof(send));
-        new_data = false;
     }
 }
 
@@ -206,12 +201,15 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t rep
     tud_hid_report(report_id, buffer, bufsize);
 }
 
-void tud_hid_sof_cb(uint32_t frame_count) {
-  // (void) frame_count;
-  if(frame_count > 2) {
+void tud_hid_sof_cb(uint32_t frame_count)
+{
+    //   (void) frame_count;
     board_led_write(false);
-  }
-  hid_task();
+    if (frame_count > 10)
+    {
+    }
+    hid_task();
+    board_led_write(true);
 }
 
 //--------------------------------------------------------------------+

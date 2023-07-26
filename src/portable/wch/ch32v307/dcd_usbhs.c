@@ -140,11 +140,11 @@ void dcd_sof_enable(uint8_t rhport, bool en)
     (void) rhport;
     if (en) 
     {
-        USBHSD->INT_EN |= USBHS_SOF_ACT_EN
+        USBHSD->INT_EN |= USBHS_SOF_ACT_EN;
     } 
     else
     {
-        USBHSD->INT_EN &= ~(USBHS_SOF_ACT_EN)
+        USBHSD->INT_EN &= ~(USBHS_SOF_ACT_EN);
     }
 }
 
@@ -345,7 +345,9 @@ void dcd_int_handler(uint8_t rhport) {
 
         xfer_ctl_t *xfer = XFER_CTL_BASE(end_num, tu_edpt_dir(endp));
 
-        if (rx_token == PID_OUT) {
+        if (rx_token == PID_SOF) {
+            dcd_event_sof(rhport, USBHSD->FRAME_NO, true);
+        } else if (rx_token == PID_OUT) {
             uint16_t rx_len = USBHSD->RX_LEN;
 
             receive_packet(xfer, rx_len);
@@ -398,8 +400,6 @@ void dcd_int_handler(uint8_t rhport) {
         dcd_event_handler(&event, true);
 
         USBHSD->INT_FG = USBHS_SUSPEND_FLAG; /* Clear flag */
-    } else if (intflag & USBHS_HST_SOF_FLAG) {
-        dcd_event_sof(rhport, USBHSD->FRAME_NO, true);
     }
 }
 
