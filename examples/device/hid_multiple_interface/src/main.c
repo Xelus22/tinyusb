@@ -82,11 +82,6 @@ int main(void)
     while (1)
     {
         tud_task(); // tinyusb device task
-        // board_led_write(false);
-        // if (tud_suspended())
-        //     tud_remote_wakeup();
-        // led_blinking_task();
-        // hid_task();
     }
 }
 
@@ -125,8 +120,21 @@ void tud_resume_cb(void)
 // USB HID
 //--------------------------------------------------------------------+
 
-bool read_buttons(void)
+static inline bool read_buttons(void)
 {
+    uint16_t gpioa = GPIO_ReadInputData(GPIOA);
+
+    // left click
+
+    // right click
+
+    // middle click 
+
+    // button 4
+
+    // button 5
+
+    
     // stub for now
     return true;
 }
@@ -138,12 +146,12 @@ void hid_task(void)
     // static hid_mouse_report_t new = {0}; // what is new
     static hid_mouse_report_t send = {0}; // what is transmitted
 
-    // uint32_t const btn = board_button_read();
+    // read sensor
 
-    // returns true
+    // read buttons
     new_data = read_buttons();
 
-    /*------------- Mouse -------------*/
+    // read encoders
 
     if (tud_hid_n_ready(ITF_MOUSE) && new_data)
     {
@@ -203,11 +211,8 @@ void tud_hid_set_report_cb(uint8_t itf, uint8_t report_id, hid_report_type_t rep
 
 void tud_hid_sof_cb(uint32_t frame_count)
 {
-    //   (void) frame_count;
+    (void) frame_count;
     board_led_write(false);
-    if (frame_count > 10)
-    {
-    }
     hid_task();
     board_led_write(true);
 }

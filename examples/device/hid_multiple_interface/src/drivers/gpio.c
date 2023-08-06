@@ -51,7 +51,6 @@ void init_buttons(void) {
 
     // EEPROM CS - A14
     EXTI_InitTypeDef EXTI_InitStructure = {0};
-    // GPIO_InitTypeDef GPIO_InitStructure = {0};
     
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA, ENABLE);
 
